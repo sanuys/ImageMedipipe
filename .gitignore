@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# MediaPipe models (downloaded via models/download_models.py)
+models/*.tflite
