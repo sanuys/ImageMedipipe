@@ -28,15 +28,49 @@ body {
 .topbar {
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
   color: white;
-  padding: 24px 20px;
+  padding: 20px 20px 0;
 }
 
-.topbar__brand {
+.topbar__inner {
   max-width: 1000px;
   margin: 0 auto;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 14px;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tabnav {
+  display: flex;
+  gap: 4px;
+}
+
+.tabnav__item {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px 10px 0 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.tabnav__item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.tabnav__item.is-active {
+  background: var(--bg);
+  color: var(--brand-dark);
 }
 
 .topbar__logo {
@@ -388,6 +422,143 @@ body {
   color: var(--brand-dark);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Audio Classifier page                                                  */
+/* ---------------------------------------------------------------------- */
+
+.audio-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.audio-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.audio-dropzone .dropzone__preview {
+  min-height: 160px;
+}
+
+.dropzone__hint {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.audio-player {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sample-row--audio {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sample-thumb--audio {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+}
+
+.sample-thumb--audio span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.audio-results-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  min-height: 240px;
+}
+
+.audio-results-card h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.segment-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--bg);
+}
+
+.segment-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.segment-card__index {
+  font-weight: 700;
+  color: var(--brand-dark);
+  font-size: 13px;
+}
+
+.segment-card__time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-row__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.category-row__score {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.category-row__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.category-row__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--brand-dark) 100%);
+}
+
 @media (max-width: 720px) {
   .panels {
     grid-template-columns: 1fr;
@@ -401,5 +572,12 @@ body {
   .advanced {
     order: 3;
     width: 100%;
+  }
+  .audio-layout {
+    grid-template-columns: 1fr;
+  }
+  .tabnav {
+    width: 100%;
+    justify-content: center;
   }
 }

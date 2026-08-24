@@ -1,0 +1,240 @@
+(() => {
+  "use strict";
+
+  const state = { type: null, file: null, sampleName: null };
+
+  const form = document.getElementById("audio-form");
+  const classifyBtn = document.getElementById("classify-btn");
+  const resetBtn = document.getElementById("audio-reset-btn");
+  const errorBox = document.getElementById("audio-error-box");
+  const loadingOverlay = document.getElementById("audio-loading-overlay");
+  const emptyHint = document.getElementById("audio-empty-hint");
+  const segmentsList = document.getElementById("segments-list");
+
+  const dropzone = document.querySelector(".audio-dropzone");
+  const fileInput = document.getElementById("audio_file");
+  const sampleHidden = document.getElementById("audio_sample");
+  const player = document.getElementById("audio_player");
+  const preview = document.getElementById("audio_preview");
+
+  function showError(message) {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+  }
+
+  function clearError() {
+    errorBox.hidden = true;
+    errorBox.textContent = "";
+  }
+
+  function setLoading(isLoading) {
+    loadingOverlay.hidden = !isLoading;
+    classifyBtn.disabled = isLoading || state.type === null;
+  }
+
+  function updateClassifyButton() {
+    classifyBtn.disabled = state.type === null;
+  }
+
+  function clearResults() {
+    segmentsList.innerHTML = "";
+    emptyHint.hidden = false;
+  }
+
+  function clearSampleSelection() {
+    document
+      .querySelectorAll("#audio_samples .sample-thumb--audio")
+      .forEach((btn) => btn.classList.remove("is-selected"));
+  }
+
+  function showPlayer(src) {
+    player.src = src;
+    player.hidden = false;
+    preview.hidden = true;
+  }
+
+  function hidePlayer() {
+    player.removeAttribute("src");
+    player.hidden = true;
+    preview.hidden = false;
+  }
+
+  function selectFile(file) {
+    if (!file.type.startsWith("audio/") && !/\.(wav|mp3|m4a|aac|ogg|oga|flac|wma|opus|webm|mp4|3gp|aiff|aif)$/i.test(file.name)) {
+      showError("กรุณาเลือกไฟล์เสียงเท่านั้น");
+      return;
+    }
+    state.type = "file";
+    state.file = file;
+    state.sampleName = null;
+    sampleHidden.value = "";
+    clearSampleSelection();
+
+    const objectUrl = URL.createObjectURL(file);
+    showPlayer(objectUrl);
+
+    clearError();
+    clearResults();
+    updateClassifyButton();
+  }
+
+  function selectSample(sampleName) {
+    state.type = "sample";
+    state.file = null;
+    state.sampleName = sampleName;
+    sampleHidden.value = sampleName;
+    fileInput.value = "";
+
+    showPlayer(`/static/audio_samples/${encodeURIComponent(sampleName)}`);
+
+    document.querySelectorAll("#audio_samples .sample-thumb--audio").forEach((btn) => {
+      btn.classList.toggle("is-selected", btn.dataset.sample === sampleName);
+    });
+
+    clearError();
+    clearResults();
+    updateClassifyButton();
+  }
+
+  function resetAll() {
+    state.type = null;
+    state.file = null;
+    state.sampleName = null;
+    fileInput.value = "";
+    sampleHidden.value = "";
+    hidePlayer();
+    clearSampleSelection();
+    clearError();
+    clearResults();
+    updateClassifyButton();
+  }
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files && fileInput.files[0]) {
+      selectFile(fileInput.files[0]);
+    }
+  });
+
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.classList.add("is-dragover");
+  });
+
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("is-dragover");
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("is-dragover");
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) {
+      selectFile(file);
+    }
+  });
+
+  document.querySelectorAll("#audio_samples .sample-thumb--audio").forEach((btn) => {
+    btn.addEventListener("click", () => selectSample(btn.dataset.sample));
+  });
+
+  resetBtn.addEventListener("click", resetAll);
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearError();
+
+    if (state.type === null) {
+      showError("กรุณาอัปโหลดไฟล์เสียง หรือเลือกจากตัวอย่างก่อน");
+      return;
+    }
+
+    const formData = new FormData();
+    if (state.type === "file") {
+      formData.append("audio_file", state.file);
+    } else {
+      formData.append("audio_sample", state.sampleName);
+    }
+
+    setLoading(true);
+    try {
+      const resp = await fetch("/api/classify-audio", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || !data.ok) {
+        showError(data.error || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ");
+        return;
+      }
+
+      renderSegments(data.segments);
+    } catch (err) {
+      showError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  function formatTimestamp(ms) {
+    const seconds = ms / 1000;
+    return `${seconds.toFixed(2)} วินาที`;
+  }
+
+  function renderSegments(segments) {
+    segmentsList.innerHTML = "";
+
+    if (!segments || segments.length === 0) {
+      emptyHint.hidden = false;
+      emptyHint.textContent = "ไม่พบผลลัพธ์การจำแนกเสียง";
+      return;
+    }
+
+    emptyHint.hidden = true;
+
+    segments.forEach((segment, idx) => {
+      const card = document.createElement("div");
+      card.className = "segment-card";
+
+      const header = document.createElement("div");
+      header.className = "segment-card__header";
+      header.innerHTML = `<span class="segment-card__index">ช่วงที่ ${idx + 1}</span><span class="segment-card__time">เริ่มที่ ${formatTimestamp(segment.timestamp_ms)}</span>`;
+      card.appendChild(header);
+
+      const catList = document.createElement("div");
+      catList.className = "category-list";
+
+      const maxScore = segment.categories.length > 0 ? segment.categories[0].score : 1;
+
+      segment.categories.forEach((cat) => {
+        const row = document.createElement("div");
+        row.className = "category-row";
+
+        const percent = Math.max(0, Math.min(100, cat.score * 100));
+        const relativeWidth = maxScore > 0 ? Math.max(4, (cat.score / maxScore) * 100) : 4;
+
+        row.innerHTML = `
+          <div class="category-row__label">
+            <span>${escapeHtml(cat.name)}</span>
+            <span class="category-row__score">${percent.toFixed(1)}%</span>
+          </div>
+          <div class="category-row__track">
+            <div class="category-row__fill" style="width: ${relativeWidth}%"></div>
+          </div>
+        `;
+        catList.appendChild(row);
+      });
+
+      card.appendChild(catList);
+      segmentsList.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  updateClassifyButton();
+})();
