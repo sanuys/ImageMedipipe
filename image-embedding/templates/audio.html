@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}MediaPipe Audio Classifier — จำแนกประเภทเสียง{% endblock %}
+{% block page_title %}MediaPipe Audio Classifier{% endblock %}
+{% block page_subtitle %}จำแนกประเภทเสียงตามช่วงเวลา ด้วย MediaPipe Tasks (YAMNet / AudioSet){% endblock %}
+
+{% block content %}
+    <form id="audio-form" class="audio-layout">
+      <section class="image-card audio-card">
+        <div class="mode-toggle" role="tablist" aria-label="แหล่งที่มาของเสียง">
+          <button type="button" class="mode-toggle__btn is-active" data-mode="mic" role="tab" aria-selected="true">
+            🎙️ Microphone
+          </button>
+          <button type="button" class="mode-toggle__btn" data-mode="file" role="tab" aria-selected="false">
+            📁 Audio File
+          </button>
+        </div>
+
+        <!-- ---------- โหมดอัดเสียงจากไมโครโฟน ---------- -->
+        <div id="mic-panel" class="mic-panel">
+          <p id="mic-status" class="mic-status">พร้อมอัดเสียง — กดปุ่มด้านล่างเพื่อเริ่ม</p>
+          <button type="button" id="record-btn" class="btn-record">
+            <span class="btn-record__icon">🎙️</span>
+            <span id="record-btn-label">เริ่มอัดเสียง</span>
+          </button>
+          <audio id="mic_player" class="audio-player" controls hidden></audio>
+          <p id="mic-unsupported" class="hint hint--warning" hidden>
+            เบราว์เซอร์นี้ไม่รองรับการอัดเสียง หรือหน้าเว็บไม่ได้เปิดผ่าน HTTPS/localhost
+            (การเข้าถึงไมโครโฟนต้องเปิดผ่าน <code>http://localhost:5000</code> หรือ
+            <code>http://127.0.0.1:5000</code> เท่านั้น ไม่สามารถใช้ผ่าน IP อื่นได้)
+          </p>
+        </div>
+
+        <!-- ---------- โหมดอัปโหลด / เลือกไฟล์ตัวอย่าง ---------- -->
+        <div id="file-panel" class="file-panel" hidden>
+          <label class="dropzone audio-dropzone" for="audio_file" tabindex="0">
+            <input type="file" id="audio_file" name="audio_file" accept="audio/*" hidden />
+            <div class="dropzone__preview" id="audio_preview">
+              <span class="dropzone__icon">🎵</span>
+              <span class="dropzone__text">คลิกหรือลากไฟล์เสียงมาวางที่นี่</span>
+              <span class="dropzone__hint">รองรับ mp3, wav, m4a, ogg, flac และอื่น ๆ</span>
+            </div>
+          </label>
+
+          <audio id="audio_player" class="audio-player" controls hidden></audio>
+
+          <input type="hidden" id="audio_sample" name="audio_sample" value="" />
+
+          <p class="sample-label">หรือเลือกจากตัวอย่าง:</p>
+          <div class="sample-row sample-row--audio" id="audio_samples">
+            {% for s in samples %}
+            <button type="button" class="sample-thumb sample-thumb--audio" data-sample="{{ s }}">
+              🔊 <span>{{ s }}</span>
+            </button>
+            {% endfor %}
+          </div>
+
+          <div class="audio-actions">
+            <button type="submit" id="classify-btn" class="btn-compare" disabled>
+              จำแนกประเภทเสียง
+            </button>
+            <button type="button" id="audio-reset-btn" class="btn-reset">ล้างค่า</button>
+          </div>
+        </div>
+
+        <!-- ---------- SETTINGS (Max Results / Score Threshold) ---------- -->
+        <div class="settings-panel">
+          <h3>ตัวเลือกขั้นสูง</h3>
+
+          <div class="setting-row">
+            <label for="max_results">Max Results <span id="max_results_value">4</span></label>
+            <input type="range" id="max_results" name="max_results" min="1" max="10" step="1" value="4" />
+          </div>
+
+          <div class="setting-row">
+            <label for="score_threshold">Score Threshold <span id="score_threshold_value">0.00</span></label>
+            <input type="range" id="score_threshold" name="score_threshold" min="0" max="1" step="0.01" value="0" />
+          </div>
+
+          <p class="hint">
+            Max Results = จำนวนหมวดหมู่สูงสุดต่อช่วงเวลา, Score Threshold = ตัดหมวดหมู่ที่คะแนน
+            ต่ำกว่าค่านี้ทิ้ง (0 = ไม่กรอง) ตรงกับพารามิเตอร์เดียวกับใน MediaPipe Web Samples Demo
+          </p>
+        </div>
+      </section>
+
+      <section class="audio-results-card">
+        <div class="audio-results-card__header">
+          <h2>ผลการจำแนกเสียง</h2>
+          <div class="status-line">
+            <span id="status-label" class="status-badge">Ready</span>
+            <span id="inference-time" class="inference-time">Inference Time: - ms</span>
+          </div>
+        </div>
+        <p id="audio-empty-hint" class="result__note">
+          เลือกโหมด Microphone หรือ Audio File ด้านซ้าย แล้วอัด/เลือกไฟล์เสียงเพื่อดูผลลัพธ์
+        </p>
+        <div id="segments-list" class="segments-list"></div>
+      </section>
+    </form>
+
+    <p id="audio-error-box" class="error-box" hidden></p>
+
+    <div id="audio-loading-overlay" class="loading-overlay" hidden>
+      <div class="spinner"></div>
+      <p>กำลังจำแนกเสียง...</p>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <p>
+      สร้างด้วย Flask + MediaPipe Tasks (Audio Classifier, YAMNet / AudioSet) ·
+      อ้างอิงจากตัวอย่างโค้ดของ Google
+      <a href="https://github.com/googlesamples/mediapipe/blob/main/examples/audio_classifier/python/audio_classification.ipynb" target="_blank" rel="noopener">
+        audio_classification.ipynb
+      </a>
+    </p>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
+{% endblock %}

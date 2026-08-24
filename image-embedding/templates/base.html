@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}MediaPipe Tasks — Web UI{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__brand">
+        <span class="topbar__logo">🧩</span>
+        <div>
+          <h1>{% block page_title %}MediaPipe Tasks{% endblock %}</h1>
+          <p>{% block page_subtitle %}เดโมเว็บแอปสำหรับ MediaPipe Tasks{% endblock %}</p>
+        </div>
+      </div>
+      <nav class="tabnav">
+        <a href="{{ url_for('index') }}" class="tabnav__item {{ 'is-active' if active_page == 'image' else '' }}">
+          🖼️ Image Embedder
+        </a>
+        <a href="{{ url_for('audio_page') }}" class="tabnav__item {{ 'is-active' if active_page == 'audio' else '' }}">
+          🔊 Audio Classifier
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    {% block footer %}
+    <p>
+      สร้างด้วย Flask + MediaPipe Tasks · อ้างอิงจากตัวอย่างโค้ดของ Google
+      <a href="https://github.com/googlesamples/mediapipe" target="_blank" rel="noopener">googlesamples/mediapipe</a>
+    </p>
+    {% endblock %}
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
